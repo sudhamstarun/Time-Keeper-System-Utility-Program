@@ -14,7 +14,7 @@ Remarks:
 
 char **parse(char *line)
 {
-	char **command = malloc(8 * sizeof(char *));
+    char **command = malloc(8 * sizeof(char *));
     char *separator = " ";
     char *parsed;
     int index = 0;
