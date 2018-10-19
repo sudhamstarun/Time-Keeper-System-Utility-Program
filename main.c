@@ -7,48 +7,113 @@ Compilation: gcc timekeeper_3015234567.c –o timekeeper
 Remarks: 
 */
 
-#include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <sys/types.h>
-#include <unistd.h>
-#include <sys/wait.h>
+#include <string.h>
+#include <stdlib.h>
 
-
-void parsing(char* input, char** argv)
+char **parse(char *line)
 {
-	while(*input != '\0')
-	{
-		while(*input == ' ' || *input == '\t' || *input == '\n')
-		{
-			*input++;
-		}
+	char **command = malloc(8 * sizeof(char *));
+    char *separator = " ";
+    char *parsed;
+    int index = 0;
 
-		*argv++ = input
+    parsed = strtok(line, separator);
+    while (parsed != NULL)
+    {
+        command[index] = parsed;
+        index++;
 
-		while(*input != '\0' && *input != ' ' && *input = '\t' && *input != '\n')
-		{
-			input++;
-		}
-	}
+        parsed = strtok(NULL, separator);
+    }
 
-	*argv = '\0';
+    command[index] = NULL;
+
+    return command;              
 }
 
-
-int main(int argc, char* argv[])
+void execute(char **argv)
 {
+	pid_t c_pid, pid;
+	int status;
 
-	/*Stage One Begins here*/
+	c_pid = fork();
 
-	argv[1+argc] = NULL;
+ 	if (c_pid == 0)
+ 	{
+    	
 
-	execvp(argv[0], argv);
+    	printf("Child: executing ls\n");
 
-    /*Stage One Ends here*/
+    	//execute ls                                                                                                                                                               
+    	execvp(argv[0], argv);
+    	//only get here if exec failed                                                                                                                                             
+    	perror("execve failed");
+  	}
 
-    return 0;
+  	else if (c_pid > 0)
+  	{
+    	
 
+    	if( (pid = wait(&status)) < 0)
+    	{
+      		perror("wait");
+      		_exit(1);
+    	}
 
+    printf("Parent: finished\n");
 
+  	}
+
+  	else
+  	{
+    	perror("fork failed");
+    	_exit(1);
+  	}
+}
+
+int main(int argc, char *argv[])
+{
+	// Preparsing Begins Here
+
+	if (argc < 1)
+	{
+		return 0;
+	}
+
+    int i; int strsize = 0;
+
+    for (i=1; i < argc; i++)
+    {
+        strsize += strlen(argv[i]);
+        if (argc > i+1)
+            strsize++;
+    }
+
+    char *cmdstring;
+ 	char **command;
+    cmdstring = malloc(strsize);
+    cmdstring[0] = '\0';
+
+    for (i=1; i<argc; i++)
+    {
+        strcat(cmdstring, argv[i]);
+
+        if (argc > i+1)
+        {
+        	strcat(cmdstring, " ");
+        }
+    }
+
+    // Preparsing endds here
+
+    //Stage One Begins Here
+
+    command = parse(cmdstring);
+    execute(command);  
+
+    //Stage One Ends Here
+
+	return 0; 
 }
