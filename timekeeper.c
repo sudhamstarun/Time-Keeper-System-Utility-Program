@@ -11,38 +11,38 @@ Remarks:
 #include <sys/types.h>
 #include <string.h>
 #include <time.h>
+#include <dirent.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
-const char* printProcessName(const pid_t currentProcessID)
+const char* printProcessName(const int pid)
 {
-    int fd;
-    char filename[24];
-    char arg_list[1024];
-    size_t length;
-    char* next_arg;
-    
-    snprintf (filename, sizeof (filename), "/proc/%d/cmdline", (int) currentProcessID);
- 
-    fd = open (filename, O_RDONLY);
-    length = read (fd, arg_list, sizeof (arg_list));
-    close (fd);
- 
-    arg_list[length] = '\0';
+    char* name = (char*)calloc(1024,sizeof(char));
+    char c[1000000];
+    if(name){
+        sprintf(name, "~/proc/%d/status",pid);
+        FILE* f = fopen(name,"r");
+        if(f)
+        {
+            size_t size;
+            size = fread(name, sizeof(char), 1024, f);
+            if(size>0){
+                if('\n'==name[size-1])
+                    name[size-1]='\0';
 
-    next_arg = arg_list;
+            fscanf(f,"%[^\n]", c);
+            printf("Data from the file:\n%s", c);
+        }
 
-    
-    while (next_arg < arg_list + length)
-    {
-        printf ("%s\n", next_arg);
+        fclose(f);
+        
+        }
+
+
     }
-    
-    next_arg += strlen (next_arg) + 1;
-    
-    return next_arg;
+    return name;
 }
 
 char **parsing(int argc, char * argv[])
@@ -92,23 +92,22 @@ char **parsing(int argc, char * argv[])
 
 void execution(char **argv)
 {
-	pid_t childProcessID, parentProcessID;
+	pid_t pid, ppid;
 	int status;
 
-	childProcessID = fork();
+	pid = fork();
 
- 	if (childProcessID == 0)
+ 	if (pid == 0)
  	{
     	execvp(argv[0], argv);
     	perror("execve failed");
   	}
 
-    printf("Process with id: %d created for the command: %s\n", (int) getppid(), printProcessName((int)getppid()));
-
-  	if (childProcessID > 0)
+  	else if (pid > 0)
   	{
+        printf("Process with id: %d created for the command: %s\n", (int) getpid(), printProcessName((int)getpid()));
 
-        if( (parentProcessID = wait(&status)) < 0)
+        if( (ppid = wait(&status)) < 0)
     	{
       		perror("wait");
       		_exit(1);
@@ -124,7 +123,7 @@ void execution(char **argv)
   	}
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char *argv[])    
 {
 	if (argc < 2)
 	{
