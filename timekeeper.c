@@ -10,9 +10,41 @@ Remarks:
 #include <stdio.h>
 #include <sys/types.h>
 #include <string.h>
+#include <time.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-char **parse(int argc, char * argv[])
+char* printProcessName(pid_t currentProcessID)
+{
+    char* name = (char*)calloc(1024,sizeof(char));
+
+    if(name)
+    {
+        sprintf(name, "/proc/%d/cmdline",currentProcessID);
+        FILE* f = fopen(name,"r");
+
+        if(f)
+        {
+            size_t size;
+            size = fread(name, sizeof(char), 1024, f);
+
+            if(size>0)
+            {
+                if('\n'==name[size-1])
+                {
+                    name[size-1]='\0';
+                }
+            }
+            fclose(f);
+        }
+    }
+
+    return name;
+}
+
+char **parsing(int argc, char * argv[])
 {
 
     int i; int strsize = 0;
@@ -57,36 +89,30 @@ char **parse(int argc, char * argv[])
     return command;
 }
 
-void execute(char **argv)
+void execution(char **argv)
 {
-	pid_t c_pid, pid;
+	pid_t childProcessID, parentProcessID;
 	int status;
 
-	c_pid = fork();
+	childProcessID = fork();
 
- 	if (c_pid == 0)
+ 	if (childProcessID == 0)
  	{
-
-
-    	printf("Child: executing\n");
-
-    	//execute ls
     	execvp(argv[0], argv);
-    	//only get here if exec failed
     	perror("execve failed");
   	}
 
-  	else if (c_pid > 0)
+  	else if (childProcessID > 0)
   	{
+        printf("Process with id: %d created for the command: %s\n", childProcessID-1, argv[0]);
 
-
-    	if( (pid = wait(&status)) < 0)
+    	if( (parentProcessID = wait(&status)) < 0)
     	{
       		perror("wait");
       		_exit(1);
     	}
 
-    printf("Parent: finished\n");
+        printf("Parent: finished\n");
 
   	}
 
@@ -95,7 +121,11 @@ void execute(char **argv)
     	perror("fork failed");
     	_exit(1);
   	}
+
+
 }
+
+
 
 int main(int argc, char *argv[])
 {
@@ -106,8 +136,8 @@ int main(int argc, char *argv[])
 
     //Stage One Begins Here
     char** command;
-    command = parse(argc,argv);
-    execute(command);
+    command = parsing(argc,argv);
+    execution(command);
     //Stage One Ends Here
 
 	return 0;
