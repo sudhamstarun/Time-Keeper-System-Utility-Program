@@ -9,6 +9,7 @@ Remarks:
 
 #include <stdio.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <string.h>
 #include <time.h>
 #include <dirent.h>
@@ -22,7 +23,7 @@ const char* printProcessName(const int pid)
     char* name = (char*)calloc(1024,sizeof(char));
     char c[1000000];
     if(name){
-        sprintf(name, "~/proc/%d/status",pid);
+        sprintf(name, "/proc/%d/cmdline",pid);
         FILE* f = fopen(name,"r");
         if(f)
         {
@@ -31,10 +32,9 @@ const char* printProcessName(const int pid)
             if(size>0){
                 if('\n'==name[size-1])
                     name[size-1]='\0';
-
-            fscanf(f,"%[^\n]", c);
-            printf("Data from the file:\n%s", c);
         }
+
+        puts(name);
 
         fclose(f);
         
@@ -90,13 +90,13 @@ char **parsing(int argc, char * argv[])
     return command;
 }
 
-void execution(char **argv)
+void execution(char **argv, int argc)
 {
 	pid_t pid, ppid;
 	int status;
 
 	pid = fork();
-
+	int i = 0;
  	if (pid == 0)
  	{
     	execvp(argv[0], argv);
@@ -105,8 +105,14 @@ void execution(char **argv)
 
   	else if (pid > 0)
   	{
-        printf("Process with id: %d created for the command: %s\n", (int) getpid(), printProcessName((int)getpid()));
-
+  		for(i = 0; i < argc-1; i++)
+  		{
+  			if (strstr(argv[i], "-") == NULL)
+  			{
+				printf("Process with id: %d created for the command: %s\n", (int) getpid(), argv[i]);
+			}
+  		}
+        	
         if( (ppid = wait(&status)) < 0)
     	{
       		perror("wait");
@@ -133,7 +139,7 @@ int main(int argc, char *argv[])
     //Stage One Begins Here
     char** command;
     command = parsing(argc,argv);
-    execution(command);
+    execution(command, argc);
     //Stage One Ends Here
 
 	return 0;
