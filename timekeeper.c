@@ -16,32 +16,33 @@ Remarks:
 #include <sys/stat.h>
 #include <unistd.h>
 
-char* printProcessName(pid_t currentProcessID)
+const char* printProcessName(const pid_t currentProcessID)
 {
-    char* name = (char*)calloc(1024,sizeof(char));
+    int fd;
+    char filename[24];
+    char arg_list[1024];
+    size_t length;
+    char* next_arg;
+    
+    snprintf (filename, sizeof (filename), "/proc/%d/cmdline", (int) currentProcessID);
+ 
+    fd = open (filename, O_RDONLY);
+    length = read (fd, arg_list, sizeof (arg_list));
+    close (fd);
+ 
+    arg_list[length] = '\0';
 
-    if(name)
+    next_arg = arg_list;
+
+    
+    while (next_arg < arg_list + length)
     {
-        sprintf(name, "/proc/%d/cmdline",currentProcessID);
-        FILE* f = fopen(name,"r");
-
-        if(f)
-        {
-            size_t size;
-            size = fread(name, sizeof(char), 1024, f);
-
-            if(size>0)
-            {
-                if('\n'==name[size-1])
-                {
-                    name[size-1]='\0';
-                }
-            }
-            fclose(f);
-        }
+        printf ("%s\n", next_arg);
     }
-
-    return name;
+    
+    next_arg += strlen (next_arg) + 1;
+    
+    return next_arg;
 }
 
 char **parsing(int argc, char * argv[])
@@ -102,30 +103,26 @@ void execution(char **argv)
     	perror("execve failed");
   	}
 
-  	else if (childProcessID > 0)
-  	{
-        printf("Process with id: %d created for the command: %s\n", childProcessID-1, argv[0]);
+    printf("Process with id: %d created for the command: %s\n", (int) getppid(), printProcessName((int)getppid()));
 
-    	if( (parentProcessID = wait(&status)) < 0)
+  	if (childProcessID > 0)
+  	{
+
+        if( (parentProcessID = wait(&status)) < 0)
     	{
       		perror("wait");
       		_exit(1);
     	}
 
         printf("Parent: finished\n");
-
   	}
 
   	else
   	{
-    	perror("fork failed");
+    	perror("Failed to Fork");
     	_exit(1);
   	}
-
-
 }
-
-
 
 int main(int argc, char *argv[])
 {
