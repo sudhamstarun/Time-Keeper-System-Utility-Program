@@ -12,33 +12,37 @@ Remarks:
 #include <sys/wait.h>
 #include <string.h>
 #include <time.h>
+#include <dirent.h>
 #include <stdlib.h>
 #include <fcntl.h>
-#include <signal.h> 
 #include <sys/stat.h>
 #include <unistd.h>
 
-const char* printProcessInfo(int pid)
+const char* printProcessName(const int pid)
 {
-	const int BUFSIZE = 4096; // should really get PAGESIZE or something instead...
-	unsigned char buffer[BUFSIZE]; // dynamic allocation rather than stack/global would be better
-	printf("PID value: %d\n",pid);
-	char* name = (char*)calloc(1024,sizeof(char));
-	sprintf(name, "/proc/self/status");
-	int fd = open(name, O_RDONLY);
-	printf("Value of FD: %d\n", pid );
-	if (fd == 0)
-	   	printf("Error in file opening\n");
-	int nbytesread = read(fd, buffer, BUFSIZE);
-	unsigned char *end = buffer + nbytesread;
-	
-	for (unsigned char *p = buffer; p < end; /**/)
-	{ 
-		puts(p);
-	  	while (*p++); // skip until start of next 0-terminated section
-	}
+    char* name = (char*)calloc(1024,sizeof(char));
+    char c[1000000];
+    if(name){
+        sprintf(name, "/proc/%d/cmdline",pid);
+        FILE* f = fopen(name,"r");
+        if(f)
+        {
+            size_t size;
+            size = fread(name, sizeof(char), 1024, f);
+            if(size>0){
+                if('\n'==name[size-1])
+                    name[size-1]='\0';
+        }
 
-	close(fd);
+        puts(name);
+
+        fclose(f);
+        
+        }
+
+
+    }
+    return name;
 }
 
 char **parsing(int argc, char * argv[])
@@ -99,32 +103,25 @@ void execution(char **argv, int argc)
     	perror("execve failed");
   	}
 
-  	
-
   	else if (pid > 0)
-  	{	
+  	{
   		for(i = 0; i < argc-1; i++)
   		{
   			if (strstr(argv[i], "-") == NULL)
   			{
-				printf("Process with id: %d created for the command: %s\n", pid, argv[i]);
+				printf("Process with id: %d created for the command: %s\n", (int) getpid(), argv[i]);
 			}
   		}
-
-  		
-
+        	
         if( (ppid = wait(&status)) < 0)
     	{
       		perror("wait");
       		_exit(1);
     	}
 
-
         printf("Parent: finished\n");
-        printProcessInfo(pid);
-
   	}
-		
+
   	else
   	{
     	perror("Failed to Fork");
