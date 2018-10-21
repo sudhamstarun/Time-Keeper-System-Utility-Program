@@ -12,37 +12,28 @@ Remarks:
 #include <sys/wait.h>
 #include <string.h>
 #include <time.h>
-#include <dirent.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <signal.h> 
 #include <sys/stat.h>
 #include <unistd.h>
 
-const char* printProcessName(const int pid)
+const char* printProcessInfo(int pid)
 {
-    char* name = (char*)calloc(1024,sizeof(char));
-    char c[1000000];
-    if(name){
-        sprintf(name, "/proc/%d/cmdline",pid);
-        FILE* f = fopen(name,"r");
-        if(f)
-        {
-            size_t size;
-            size = fread(name, sizeof(char), 1024, f);
-            if(size>0){
-                if('\n'==name[size-1])
-                    name[size-1]='\0';
-        }
+	const int BUFSIZE = 4096; // should really get PAGESIZE or something instead...
+	unsigned char buffer[BUFSIZE]; // dynamic allocation rather than stack/global would be better
+	printf("PID value(+1)%d\n",pid+1);
+	int fd = open("/proc/%d/status",pid+1);
+	int nbytesread = read(fd, buffer, BUFSIZE);
+	unsigned char *end = buffer + nbytesread;
+	
+	for (unsigned char *p = buffer; p < end; /**/)
+	{ 
+		puts(p);
+	  	while (*p++); // skip until start of next 0-terminated section
+	}
 
-        puts(name);
-
-        fclose(f);
-        
-        }
-
-
-    }
-    return name;
+	close(fd);
 }
 
 char **parsing(int argc, char * argv[])
@@ -105,6 +96,7 @@ void execution(char **argv, int argc)
 
   	else if (pid > 0)
   	{
+  		
   		for(i = 0; i < argc-1; i++)
   		{
   			if (strstr(argv[i], "-") == NULL)
@@ -118,6 +110,8 @@ void execution(char **argv, int argc)
       		perror("wait");
       		_exit(1);
     	}
+
+    	printProcessInfo((int)getpid());
 
         printf("Parent: finished\n");
   	}
