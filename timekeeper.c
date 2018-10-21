@@ -22,8 +22,13 @@ const char* printProcessInfo(int pid)
 {
 	const int BUFSIZE = 4096; // should really get PAGESIZE or something instead...
 	unsigned char buffer[BUFSIZE]; // dynamic allocation rather than stack/global would be better
-	printf("PID value(+1)%d\n",pid+1);
-	int fd = open("/proc/%d/status",pid+1);
+	printf("PID value: %d\n",pid);
+	char* name = (char*)calloc(1024,sizeof(char));
+	sprintf(name, "/proc/self/status");
+	int fd = open(name, O_RDONLY);
+	printf("Value of FD: %d\n", pid );
+	if (fd == 0)
+	   	printf("Error in file opening\n");
 	int nbytesread = read(fd, buffer, BUFSIZE);
 	unsigned char *end = buffer + nbytesread;
 	
@@ -94,28 +99,32 @@ void execution(char **argv, int argc)
     	perror("execve failed");
   	}
 
+  	
+
   	else if (pid > 0)
-  	{
-  		
+  	{	
   		for(i = 0; i < argc-1; i++)
   		{
   			if (strstr(argv[i], "-") == NULL)
   			{
-				printf("Process with id: %d created for the command: %s\n", (int) getpid(), argv[i]);
+				printf("Process with id: %d created for the command: %s\n", pid, argv[i]);
 			}
   		}
-        	
+
+  		
+
         if( (ppid = wait(&status)) < 0)
     	{
       		perror("wait");
       		_exit(1);
     	}
 
-    	printProcessInfo((int)getpid());
 
         printf("Parent: finished\n");
-  	}
+        printProcessInfo(pid);
 
+  	}
+		
   	else
   	{
     	perror("Failed to Fork");
