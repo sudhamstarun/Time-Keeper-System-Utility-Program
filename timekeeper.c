@@ -20,7 +20,7 @@ Remarks:
 int parentProcessPID = 0;   
 int childProcessPID = 0;
 int timeStatisticsTrigger = 1;      
-int cont = 1;       
+int cont = 0;
 int pipeCounter = 0;        
 int firstProcess = 0;   
 int maintainPipes = 0;
@@ -169,7 +169,7 @@ void sigChildHandler(int signum, siginfo_t *signal, void *v)
     id_t child_pid = waitpid(signal->si_pid, NULL, 0);                  
 }
 
-void sigkill_handler(int signum)
+void SIGKILLHandler(int signum)
 {
     printf("Killed\n");
 }
@@ -239,52 +239,93 @@ char ** parsing(char mainInputCommand[1024])
     return stringTokenizers;
 }
 
+void SIGUSR1_Handler(int signum)
+{
+
+}
+
+void SIGUSR2_handler(int signum, siginfo_t *signal, void *v)
+ { 
+  kill(signal->si_pid, SIGUSR1); 
+}  
 
 int main()
 {
-    char mainInputCommand[1024];
-    char duplicateMainInputCommand[1024];
-    char *stringToken;
-    char *mainInputCommandTokenizer;
-    char *pointerToMainInputCommand;
-    char *duplicatePointerToMainInputCommand;
-    char *pointerPosition;
-    char str[50];
-    char ** stringTokenizers  = NULL;
+    /* ------------DECLARING CHAR ARRAYS AND POINTERS------------ */
+
+    char mainInputCommand[1024]; // command
+    char duplicateMainInputCommand[1024]; //commandcopy
+    char *stringToken; //token
+    char *mainInputCommandTokenizer; //commandTok
+    char *pointerToMainInputCommand; //pointerTok
+    char *duplicatePointerToMainInputCommand; //pointerTokCopy
+    char *pointerPosition; //pos 
+    char str[50]; //str[50]
+    char ** stringTokenizers  = NULL; //tokens
+
+    /* ---------------------------------------------------------- */
+
+    /* ------------DECLARING SIGNAL STRUCTS----------------------- */
+
+    struct sigaction SigChild;
+    struct sigaction SigInt;
+    struct sigaction SigUsr2;
+
+    /* ---------------------------------------------------------- */
+
+
+    /* ------------DECLARING INTEGERS AND PROCESSID------------ */
+
+
+    int stringTokenizersCounter; //noOfTokens
+    int mainInputCommandCounter; //noOfCommands
+    int randomIntegerOne; // j
+    int randomIntegerTwo; // z
+    pid_t currentRunningProcessId; //who
+
+    /* ---------------------------------------------------------- */
     
-    int stringTokenizersCounter;
-    int mainInputCommandCounter;
-    int randomIntegerOne;
-    int randomIntegerTwo;
-    pid_t currentRunningProcessId;
+    /* ------------CALLING SIGNAL HANDLNG FUNCTIONS------------ */
     
-    
-    signal(SIGKILL, sigkill_handler);       
-    struct sigaction SigChild;              
+    signal(SIGKILL, SIGKILLHandler); 
+    signal(SIGUSR1, sigusr1_handler);      
+           
     sigaction(SIGCHLD, NULL, &SigChild);
     SigChild.sa_flags = SA_SIGINFO;
     SigChild.sa_sigaction = sigChildHandler;
     sigaction(SIGCHLD, &SigChild, NULL);
-    
-    struct sigaction SigInt;                
+                
     sigaction(SIGINT, NULL, &SigInt);
     SigInt.sa_flags = SA_SIGINFO;
     SigInt.sa_sigaction = sigIntHandler;
     sigaction(SIGINT, &SigInt, NULL);
 
+      
+    sigaction(SIGUSR2, NULL, &SigUsr2);
+    SigUsr2.sa_flags = SA_SIGINFO;
+    SigUsr2.sa_sigaction = sigusr2_handler;
+    sigaction(SIGUSR2, &SigUsr2, NULL);
+
+    /* ---------------------------------------------------------- */
+    
+    /* ------------STARTING TO TAKE INPUT AND EXECUTE COMMANDS------------ */
+
     while(1 == 1)
     {
         while(cont == 1)
         {
-            char ** incomingCommands  = NULL;   
-            stringTokenizersCounter = 0;
-            mainInputCommandCounter = 0;
-            childProcessPID = 0;
+            char ** incomingCommands  = NULL;   //commands
+            stringTokenizersCounter = 0; //noOfTokens
+            mainInputCommandCounter = 0; //noOfCommands
+            childProcessPID = 0; //bground
             
             printf("Enter your command here $ ");          
                 
             if(fgets (mainInputCommand, 1024, stdin) != NULL && strcmp(mainInputCommand, "\n") != 0 )
             {
+                
+               /* ------------STARTING PRE-TOKENIZATION------------ */
+                
                 strcpy(mainInputCommand, removeWhiteSpaces(mainInputCommand));
 
                 if ((pointerPosition=strchr(mainInputCommand, '\n')) != NULL)
@@ -296,8 +337,13 @@ int main()
 
                 if(strlen(mainInputCommand) == 0)
                 {
-                    cont = 0;
-                }      
+                    continue;
+                }
+                
+              /* ---------------------------------------------------------- */
+                
+                
+                /* -------------------- START PIPING ------------ */
 
                 int fail = 0;
 
@@ -336,8 +382,13 @@ int main()
                 if(fail == 1)
                 {                          
                     printf("Please check your piping again\n");
-                    cont = 0; 
+                    continue; 
                 }
+                
+                
+                /* ------------------------------ */
+                
+                /* -----------------START TOKENIZATION------------- */
 
                 pointerToMainInputCommand = mainInputCommand;
 
@@ -354,29 +405,29 @@ int main()
                 }
 
                 stringTokenizers = realloc (stringTokenizers, sizeof (char*) * (stringTokenizersCounter+1));        
-                stringTokenizers[stringTokenizersCounter] = (char *)NULL;                   
-
-                for (randomIntegerOne = 0; randomIntegerOne < stringTokenizersCounter; randomIntegerOne++)
-                {
-                    if(strcmp(stringTokenizers[randomIntegerOne], "&") == 0){               
-                        fail = 1;                   
-                        break;                          
-                    }
-                }
+                stringTokenizers[stringTokenizersCounter] = (char *)NULL;
                 
-
+                 /* ----------------------------------------- */
+                
+                /* -----------------STARTING EXIT LOGIC------------------------ */
+                
                 if(strcmp(stringTokenizers[0], "exit") == 0)
                 {                   
                     if(stringTokenizersCounter == 1)
                     {                       
-      					//dotimeStatisticsTrigger((int) currentRunningProcessId);
+                        printf("Parent Process Terminated"\n);
                         exit(0);                        
                     }
                     else
                     {   
-                        cont = 0;                       
+                        continue;
                     }
                 }
+                
+                /* ----------------------------------------- */
+                
+                /* ------START TIME STATISTICS TRIGGER---------------------- */
+                
         
                 if(strcmp(stringTokenizers[0], "timeStatisticsTrigger") == 0)
                 
@@ -398,29 +449,32 @@ int main()
                     }
                 }
                     
-                
+                /* ----------------------------------------- */
 
+                
+                /* ----------------EXECUTION STARTS HERE------------------------- */
+                
+                
                 if(pipeCounter == 0) // If there is no case of piping
                 { 
                     currentRunningProcessId = fork();
-
-                              
                     if(currentRunningProcessId==0)
                     {
                         if(childProcessPID == 1)
                         {   
-                            sigset_t new;
-                            sigemptyset(&new);
-                            sigaddset(&new, SIGINT);
-                            sigprocmask(SIG_BLOCK, &new, NULL);
+                            sigset_t newSignal;
+                            sigemptyset(&newSignal);
+                            sigaddset(&newSignal, SIGINT);
+                            sigprocmask(SIG_BLOCK, &newSignal, NULL);
                         }
 
-                        printf("Process with process ID %d created for the command: \n", (int) currentRunningProcessId, stringTokenizers[0]); 
+                       // printf("Process with process ID %d created for the command: \n", (int) currentRunningProcessId, stringTokenizers[0]);
                         
-                        printf("The process with process ID %d created for the command: %s\n",(int) getpid(), stringTokenizers[0]);
+                        //printf("The process with process ID %d created for the command: %s\n",(int) getpid(), stringTokenizers[0]);
+                        
                         if (execvp(stringTokenizers[0], stringTokenizers) == -1)
                         { 
-                            perror("myshell: Error");
+                            perror("ERROR: Parent Terminated);
                             exit(-1);
                         }
                     }
@@ -436,7 +490,7 @@ int main()
 
                         stringTokenizers = NULL;        
                         mainInputCommand[0] = '\0';
-                        cont = 0;
+                        
                     } 
 
                 }
@@ -470,10 +524,10 @@ int main()
                             {                           
                                 if(childProcessPID == 1)
                                 {       
-                                    sigset_t new;
-                                    sigemptyset(&new);
-                                    sigaddset(&new, SIGINT);
-                                    sigprocmask(SIG_BLOCK, &new, NULL);
+                                    sigset_t newSignal;
+                                    sigemptyset(&newSignal);
+                                    sigaddset(&newSignal, SIGINT);
+                                    sigprocmask(SIG_BLOCK, &newSignal, NULL);
                                 }
                         
                                 if (cmdExec != 0)
@@ -491,7 +545,7 @@ int main()
                         
                                 char ** stringTokenizers = parsing(incomingCommands[cmdExec]);
 
-                                printf("The process with process ID %d created for the command: %s\n",(int) getpid(), stringTokenizers[pipeCounter]);          
+                                //printf("The process with process ID %d created for the command: %s\n",(int) getpid(), stringTokenizers[cmdExec]);
 
                                 if (execvp(stringTokenizers[0], stringTokenizers) == -1)
                                  {              
@@ -508,7 +562,7 @@ int main()
                                 }              
                                                  
                             }
-                            
+
                             cmdExec++;
                         }
 
@@ -517,15 +571,15 @@ int main()
                             close(pipesArr[k]);
                         } 
                                      
-                    	cont = 0;
+                    	
                     	//dotimeStatisticsTrigger((int) getpid());
 
                         if(childProcessPID == 0)
                         {               
-                            sigset_t new;               
-                            sigemptyset(&new);
-                            sigaddset(&new, SIGCHLD);
-                            sigprocmask(SIG_BLOCK, &new, NULL);
+                            sigset_t newSignal;
+                            sigemptyset(&newSignal);
+                            sigaddset(&newSignal, SIGCHLD);
+                            sigprocmask(SIG_BLOCK, &newSignal, NULL);
                         
                             for (k = 0; k <= pipeCounter; k++)
                             {
@@ -539,13 +593,9 @@ int main()
                                 }
                                 waitpid(processInfo.si_pid, NULL, 0);   
                             }
-                            sigprocmask(SIG_UNBLOCK, &new, NULL);     
-
-                            for(k = 0; k <= pipeCounter; k++)
-                            {
-                            	//dotimeStatisticsTrigger((int) getpid());
-                            }              
-
+                            
+                            timeStatisticsTrigger = 0;
+                            sigprocmask(SIG_UNBLOCK, &newSignal, NULL);
                             exit(0);
                         }
                         
@@ -554,8 +604,11 @@ int main()
                     else
                     {
                         maintainPipes = (int)currentRunningProcessId;
-                        //dotimeStatisticsTrigger(maintainPipes);
-                       	exit(0);
+                        if(childProcessPID != 1)
+                        {
+                            cont = 0;
+                        }
+                        
                     }       
                 }       
             }

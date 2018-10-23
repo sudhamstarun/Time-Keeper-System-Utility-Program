@@ -7,13 +7,7 @@
 #include <sys/types.h>
 #include <signal.h>
 
-/*
-Student name and No.: Kanak Kabara - 3035614221
-UID: 3035164221
-Development Platform: Ubuntu 14.04
-Last Modified Date: 21st October 2016
-Compilation: gcc myshell.c -o myshell
-*/
+
 
 int fground = 0;  //Store the PID of process running in foreground
 int bground = 0;
@@ -180,7 +174,8 @@ int main() {
       
       printf("## myshell $ ");      
         
-      if(fgets (command, 1024, stdin) != NULL && strcmp(command, "\n") != 0 ){ //checks if the input is valid and not just a new line
+      if(fgets (command, 1024, stdin) != NULL && strcmp(command, "\n") != 0 )
+      { //checks if the input is valid and not just a new line
         /* ------------ Prepare string for tokenization ------------ */
         strcpy(command, trimwhitespace(command));   //remove trailing and leading spaces    
         if ((pos=strchr(command, '\n')) != NULL)    //remove newline char due to pressing enter from command
@@ -200,10 +195,13 @@ int main() {
         int fail = 0;
         if (strchr(command, '|') == NULL) {   //look for the piping character
           noOfPipes = 0;        //if not found, no piping = simple execution
-        }else{
+        }
+        else
+        {
           strcpy(commandCopy, command);
           pointerToCommCopy = commandCopy;
-          while ((commandTok = strsep(&pointerToCommCopy, "|")) != NULL && fail == 0){  //tokenize the string based on the | character to separate all the commands
+          while ((commandTok = strsep(&pointerToCommCopy, "|")) != NULL && fail == 0)
+          {  //tokenize the string based on the | character to separate all the commands
             commands = realloc (commands, sizeof (char*) * ++noOfCommands);   //grow the commands array to fit new command
             if (commands == NULL)             //if realloc fail, exit myshell
               exit (-1); 
@@ -226,7 +224,8 @@ int main() {
         
         /* ------------ Start of Tokenization ------------ */
         pointerToComm = command;            
-        while ( (token = strsep(&pointerToComm, " ")) != NULL){     //Seperate the command using ' ' as the delim
+        while ( (token = strsep(&pointerToComm, " ")) != NULL)
+        {     //Seperate the command using ' ' as the delim
           tokens = realloc (tokens, sizeof (char*) * ++noOfTokens); //grow the tokens array
           if (tokens == NULL)
             exit (-1); 
@@ -265,23 +264,31 @@ int main() {
         /* ------------ END OF EXIT HANDLING ------------ */
 
         /* ------------ Handling timeX ------------ */      
-        if(strcmp(tokens[0], "timeX") == 0){                //Check if first token is timeX
-          if(noOfTokens == 1){                  //Error if only one token, since timeX is not a standalone func
+        if(strcmp(tokens[0], "timeX") == 0)
+        {                //Check if first token is timeX
+          if(noOfTokens == 1)
+          {                  //Error if only one token, since timeX is not a standalone func
             printf("myshell: \"timeX\" cannot be a standalone command\n");
             continue;                 //go back user prompt
           }
-          else{ 
-            if(bground  == 1){                //Error if bground & specified, since timeX can only run in foreground
+          else
+          { 
+            if(bground  == 1)
+            {                //Error if bground & specified, since timeX can only run in foreground
               printf("myshell: \"timeX\" cannot be run in background mode\n");
               bground = 0;
               continue;
-            }else{
+            }
+            else
+            {
               timeX = 1;                //indicate that timeX must be performed on processes
               int idx;
-              if(noOfPipes == 0){             //remove the "timeX" token so that tokenization is not affected
+              if(noOfPipes == 0)
+              {             //remove the "timeX" token so that tokenization is not affected
                 for (idx = 1; idx <= noOfTokens; ++idx)
                   tokens[idx-1] = tokens[idx];
-              }else{                   
+              }
+              else{                   
                 //piping, so final tokens have not been created yet. Hence, timeX must be removed from the command string and not the tokens array.
                 strncpy(commands[0], commands[0]+6, strlen(commands[0])-4); //get substring without "timeX"           
               }
@@ -302,7 +309,8 @@ int main() {
             }
             //kill((int)getppid(), SIGUSR2); //Tell the parent that I am ready to execute my command
             //pause(); //Pause, wait for SIGUSR1 from parent. Once received, proceed to exec command.
-            if (execvp(tokens[0], tokens) == -1) { //replace current image with the image of the program we want to execute
+            if (execvp(tokens[0], tokens) == -1) { 
+            //replace current image with the image of the program we want to execute
               perror("myshell: Error");
               exit(-1);
             } 
@@ -325,7 +333,8 @@ int main() {
             for (k = 0; k < noOfPipes; k++) pipe(pipesArr + k * 2);   //create the pipes
 
             int cmdExec = 0;
-            while (cmdExec <= noOfPipes) {        
+            while (cmdExec <= noOfPipes)
+            {        
               pid_t pipeChild = fork();       //create new child for each pipe command          
               if(leader == 0)           //if a group leader is not defined, make this process the group leader
                 leader = pipeChild;
@@ -362,7 +371,8 @@ int main() {
             for (k = 0; k < 2 * noOfPipes; k++) 
               close(pipesArr[k]);     //close all pipe ends in parent
           
-            if(bground == 0){       //In foreground piped processes
+            if(bground == 0)
+            {       //In foreground piped processes
               sigset_t new;       //Adds a signal mask for SIGCHLD to stop the signal handler from being invoked
               sigemptyset(&new);
               sigaddset(&new, SIGCHLD);
@@ -382,7 +392,9 @@ int main() {
               exit(0);
             }
             
-          }else{
+          }
+          else
+          {
             pipeHandler = (int)who;
             if(bground != 1)  //if process is a foreground process
               cont = 0; //set cont=0 to stop myshell from prompting for next input
