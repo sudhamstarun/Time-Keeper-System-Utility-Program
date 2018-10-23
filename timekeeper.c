@@ -236,6 +236,7 @@ char ** parsing(char mainInputCommand[1024])
 
     stringTokenizers = realloc (stringTokenizers, sizeof (char*) * (stringTokenizersCounters+1));       
     stringTokenizers[stringTokenizersCounters] = (char *)NULL;
+
     return stringTokenizers;
 }
 
@@ -253,15 +254,15 @@ int main()
 {
     /* ------------DECLARING CHAR ARRAYS AND POINTERS------------ */
 
-    char mainInputCommand[1024]; // command
-    char duplicateMainInputCommand[1024]; //commandcopy
-    char *stringToken; //token
-    char *mainInputCommandTokenizer; //commandTok
-    char *pointerToMainInputCommand; //pointerTok
-    char *duplicatePointerToMainInputCommand; //pointerTokCopy
-    char *pointerPosition; //pos 
-    char str[50]; //str[50]
-    char ** stringTokenizers  = NULL; //tokens
+    char mainInputCommand[1024]; 
+    char duplicateMainInputCommand[1024];
+    char *stringToken; 
+    char *mainInputCommandTokenizer; 
+    char *pointerToMainInputCommand; 
+    char *duplicatePointerToMainInputCommand; 
+    char *pointerPosition; 
+    char str[50]; 
+    char ** stringTokenizers  = NULL; 
 
     /* ---------------------------------------------------------- */
 
@@ -277,11 +278,11 @@ int main()
     /* ------------DECLARING INTEGERS AND PROCESSID------------ */
 
 
-    int stringTokenizersCounter; //noOfTokens
-    int mainInputCommandCounter; //noOfCommands
-    int randomIntegerOne; // j
-    int randomIntegerTwo; // z
-    pid_t currentRunningProcessId; //who
+    int stringTokenizersCounter; 
+    int mainInputCommandCounter; 
+    int randomIntegerOne; 
+    int randomIntegerTwo; 
+    pid_t currentRunningProcessId; 
 
     /* ---------------------------------------------------------- */
     
@@ -309,6 +310,8 @@ int main()
     /* ---------------------------------------------------------- */
     
     /* ------------STARTING TO TAKE INPUT AND EXECUTE COMMANDS------------ */
+while(1==1)
+{
     while(cont == 1)
     {
         char ** incomingCommands  = NULL;   //commands
@@ -533,7 +536,9 @@ int main()
                                      
                     
                             char ** stringTokenizers = parsing(incomingCommands[cmdExec]);
-                            //printf("The process with process ID %d created for the command: %s\n",(int) getpid(), stringTokenizers[cmdExec]);
+                            
+                            printf("The process with process ID %d created for the command: %s\n",(int) getpid(), stringTokenizers[0]);
+
                             if (execvp(stringTokenizers[0], stringTokenizers) == -1)
                              {              
                                 perror("myshell: Error");               
@@ -595,4 +600,5 @@ int main()
             }       
         }
     }
+}
 }
