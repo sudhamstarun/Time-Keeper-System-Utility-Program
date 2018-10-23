@@ -291,12 +291,12 @@ int main()
                 {
                     *pointerPosition = '\0';
                 }   
-   
+  
+                strcpy(mainInputCommand, removeWhiteSpaces(mainInputCommand));   
 
-                strcpy(mainInputCommand, removeWhiteSpaces(mainInputCommand));      
                 if(strlen(mainInputCommand) == 0)
                 {
-                    exit(0);
+                    cont = 0;
                 }      
 
                 int fail = 0;
@@ -310,6 +310,7 @@ int main()
                 {
                     strcpy(duplicateMainInputCommand, mainInputCommand);
                     duplicatePointerToMainInputCommand = duplicateMainInputCommand;
+                    
                     while ((mainInputCommandTokenizer = strsep(&duplicatePointerToMainInputCommand, "!")) != NULL && fail == 0)
                     {    
                         incomingCommands = realloc (incomingCommands, sizeof (char*) * ++mainInputCommandCounter);      
@@ -368,7 +369,7 @@ int main()
                 {                   
                     if(stringTokenizersCounter == 1)
                     {                       
-                        dotimeStatisticsTrigger()
+      					//dotimeStatisticsTrigger((int) currentRunningProcessId);
                         exit(0);                        
                     }
                     else
@@ -378,38 +379,28 @@ int main()
                 }
         
                 if(strcmp(stringTokenizers[0], "timeStatisticsTrigger") == 0)
-                {                               
-                    if
-                    { 
-                        if(childProcessPID  == 1)
-                        {                              
-                            printf("myshell: \"timeStatisticsTrigger\" cannot be run in background mode\n");
-                            childProcessPID = 0;
-                            cont = 0;
-                        }
-                        
-                        else
+                
+                {
+                    timeStatisticsTrigger = 1;                              
+                    int idx;
+                    if(pipeCounter == 0)
+                    {                           
+                        for (idx = 1; idx <= stringTokenizersCounter; ++idx)
                         {
-                            timeStatisticsTrigger = 1;                              
-                            int idx;
-                            if(pipeCounter == 0)
-                            {                           
-                                for (idx = 1; idx <= stringTokenizersCounter; ++idx)
-                                {
-                                    stringTokenizers[idx-1] = stringTokenizers[idx];
-                                }
-                            }
-                            
-                            else
-                            {                                    
-                                
-                                strncpy(incomingCommands[0], incomingincomingCommands[0]+6, strlen(incomingCommands[0])-4);                     
-                            }
+                            stringTokenizers[idx-1] = stringTokenizers[idx];
                         }
                     }
+                    
+                    else
+                    {                                    
+                        
+                        strncpy(incomingCommands[0], incomingCommands[0]+6, strlen(incomingCommands[0])-4);                     
+                    }
                 }
+                    
+                
 
-                if(pipeCounter == 0)
+                if(pipeCounter == 0) // If there is no case of piping
                 { 
                     currentRunningProcessId = fork();
 
@@ -421,18 +412,20 @@ int main()
                             sigemptyset(&new);
                             sigaddset(&new, SIGINT);
                             sigprocmask(SIG_BLOCK, &new, NULL);
-                        }
-
-                        printf("Process with process ID %d created for the command: \n", (int) currentRunningProcessId, stringTokenizers[0]); 
+                        } 
                         
+                        printf("The process with process ID %d created for the command: %s\n",(int) getpid(), stringTokenizers[0]);
                         if (execvp(stringTokenizers[0], stringTokenizers) == -1)
                         { 
                             perror("myshell: Error");
                             exit(-1);
-                        }   
+                        }
                     }
-                    else{                           
-                        if(childProcessPID != 1){   
+                    
+                    else
+                    {                           
+                        if(childProcessPID != 1)
+                        {   
                             parentProcessPID = (int)currentRunningProcessId;
                             cont = 0;   
                         }
@@ -441,7 +434,8 @@ int main()
                         stringTokenizers = NULL;        
                         mainInputCommand[0] = '\0';
                         cont = 0;
-                    }   
+                    } 
+
                 }
 
                 else
@@ -451,7 +445,8 @@ int main()
                     if(currentRunningProcessId==0)
                     {                           
                         int k = 0;  
-                        int pipesArr[2 * pipeCounter];                  
+                        int pipesArr[2 * pipeCounter]; 
+
                         for (k = 0; k < pipeCounter; k++)
                         {
                             pipe(pipesArr + k * 2); 
@@ -461,7 +456,8 @@ int main()
 
                         while (cmdExec <= pipeCounter)
                         {               
-                            pid_t pipeChild = fork();                                   
+                            pid_t pipeChild = fork();
+
                             if(firstProcess == 0)                       
                             {
                                 firstProcess = pipeChild;
@@ -470,7 +466,6 @@ int main()
                             if (pipeChild == 0)
                             {                           
                                 if(childProcessPID == 1)
-
                                 {       
                                     sigset_t new;
                                     sigemptyset(&new);
@@ -488,16 +483,26 @@ int main()
                                 for (k = 0; k < 2*pipeCounter; k++) 
                                     close(pipesArr[k]);     
                         
-                                char ** stringTokenizers = parsing(incomingCommands[cmdExec]);          
+                                char ** stringTokenizers = parsing(incomingCommands[cmdExec]);
 
-                                if (execvp(stringTokenizers[0], stringTokenizers) == -1) {              
+                                printf("The process with process ID %d created for the command: %s\n",(int) getpid(), stringTokenizers[0]);          
+
+                                if (execvp(stringTokenizers[0], stringTokenizers) == -1)
+                                 {              
                                     perror("myshell: Error");               
                                     exit(-1);
                                 }
-                            } else {
-                                if(setpgid(pipeChild, firstProcess) == -1)              
-                                    perror("myshell: Error");               
-                            }
+                            } 
+
+                            else
+                            {
+                                if(setpgid(pipeChild, firstProcess) == -1)
+                                {
+                                	perror("Error"); // 
+                                }              
+                                                   
+                         	}
+
                             cmdExec++;
                         }
 
@@ -506,7 +511,9 @@ int main()
                             close(pipesArr[k]);
                         } 
                                      
-                    
+                    	cont = 0;
+                    	//dotimeStatisticsTrigger((int) getpid());
+
                         if(childProcessPID == 0)
                         {               
                             sigset_t new;               
@@ -514,24 +521,35 @@ int main()
                             sigaddset(&new, SIGCHLD);
                             sigprocmask(SIG_BLOCK, &new, NULL);
                         
-                            for (k = 0; k <= pipeCounter; k++){
+                            for (k = 0; k <= pipeCounter; k++)
+                            {
                                 siginfo_t processInfo;
                                 processInfo.si_pid = -1;
-                                if(timeStatisticsTrigger == 1){
+                                if(timeStatisticsTrigger == 1)
+                                {
                                     while( waitid(P_PGID, firstProcess, &processInfo, WEXITED | WNOWAIT) < 0);  
+                                    dotimeStatisticsTrigger(processInfo.si_pid);
                                                             
                                 }
                                 waitpid(processInfo.si_pid, NULL, 0);   
                             }
-                            sigprocmask(SIG_UNBLOCK, &new, NULL);                   
+                            sigprocmask(SIG_UNBLOCK, &new, NULL);     
+
+                            for(k = 0; k <= pipeCounter; k++)
+                            {
+                            	//dotimeStatisticsTrigger((int) getpid());
+                            }              
 
                             exit(0);
                         }
                         
-                    }else{
+                    }
+
+                    else
+                    {
                         maintainPipes = (int)currentRunningProcessId;
-                        if(childProcessPID != 1)    
-                            cont = 0;   
+                        //dotimeStatisticsTrigger(maintainPipes);
+                       	exit(0);
                     }       
                 }       
             }
