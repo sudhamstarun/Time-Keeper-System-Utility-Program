@@ -3,7 +3,6 @@ FileName: main.c
 Student Name: Tarun Sudhams
 Student Number: 3035253876
 Development Platform: MACOSX 10.14 with gcc compiler and Sublime Text(tested under Ubuntu 18.04 
-Compilation: gcc timekeeper_3015234567.c –o timekeeper
 Remarks:
 */
 
@@ -470,7 +469,7 @@ while(1==1)
 
                    // printf("Process with process ID %d created for the command: \n", (int) currentRunningProcessId, stringTokenizers[0]);
                     
-                    //printf("The process with process ID %d created for the command: %s\n",(int) getpid(), stringTokenizers[0]);
+                    printf("The process with process ID %d created for the command: %s\n",(int) getpid(), stringTokenizers[0]);
                     
                     if (execvp(stringTokenizers[0], stringTokenizers) == -1)
                     { 
@@ -536,8 +535,8 @@ while(1==1)
                                      
                     
                             char ** stringTokenizers = parsing(incomingCommands[cmdExec]);
-                            
-                            printf("The process with process ID %d created for the command: %s\n",(int) getpid(), stringTokenizers[0]);
+
+                            printf("The process with process ID %d created for the command: %s\n",(int) getpid(), incomingCommands[cmdExec]);
 
                             if (execvp(stringTokenizers[0], stringTokenizers) == -1)
                              {              
@@ -561,7 +560,7 @@ while(1==1)
                     } 
                                  
                 	
-                	//dotimeStatisticsTrigger((int) getpid());
+                	
                     if(childProcessPID == 0)
                     {               
                         sigset_t newSignal;
@@ -571,6 +570,7 @@ while(1==1)
                     
                         for (k = 0; k <= pipeCounter; k++)
                         {
+
                             siginfo_t processInfo;
                             processInfo.si_pid = -1;
                             if(timeStatisticsTrigger == 1)
@@ -588,6 +588,7 @@ while(1==1)
                     }
                     
                 }
+                
                 else
                 {
                     maintainPipes = (int)currentRunningProcessId;
