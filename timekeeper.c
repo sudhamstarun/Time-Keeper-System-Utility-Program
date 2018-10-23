@@ -38,7 +38,8 @@ void dotimeStatisticsTrigger(int processID)
     unsigned long long int starttime;
     
     sprintf(inputStringOne, "/proc/%d/stat", processID);    
-    file = fopen(inputStringOne, "r");          
+    file = fopen(inputStringOne, "r");
+
     if (file == NULL)
     {                                                                               
         printf("Error in open my proc file for %s\n", inputStringOne);  
@@ -203,7 +204,6 @@ char *removeWhiteSpaces(char *inputChar)
 
     } 
 
-    
     *(endChar+1) = 0;
     
     return inputChar;
@@ -407,12 +407,15 @@ int main()
                               
                     if(currentRunningProcessId==0)
                     {
-                        if(childProcessPID == 1){   
+                        if(childProcessPID == 1)
+                        {   
                             sigset_t new;
                             sigemptyset(&new);
                             sigaddset(&new, SIGINT);
                             sigprocmask(SIG_BLOCK, &new, NULL);
-                        } 
+                        }
+
+                        printf("Process with process ID %d created for the command: \n", (int) currentRunningProcessId, stringTokenizers[0]); 
                         
                         printf("The process with process ID %d created for the command: %s\n",(int) getpid(), stringTokenizers[0]);
                         if (execvp(stringTokenizers[0], stringTokenizers) == -1)
@@ -480,12 +483,15 @@ int main()
                                     
                                 if (cmdExec != pipeCounter)             
                                     dup2(pipesArr[cmdExec * 2 + 1], 1);     
-                                for (k = 0; k < 2*pipeCounter; k++) 
-                                    close(pipesArr[k]);     
+                                for (k = 0; k < 2*pipeCounter; k++)
+                                {
+                                    close(pipesArr[k]);
+                                } 
+                                         
                         
                                 char ** stringTokenizers = parsing(incomingCommands[cmdExec]);
 
-                                printf("The process with process ID %d created for the command: %s\n",(int) getpid(), stringTokenizers[0]);          
+                                printf("The process with process ID %d created for the command: %s\n",(int) getpid(), stringTokenizers[pipeCounter]);          
 
                                 if (execvp(stringTokenizers[0], stringTokenizers) == -1)
                                  {              
@@ -498,11 +504,11 @@ int main()
                             {
                                 if(setpgid(pipeChild, firstProcess) == -1)
                                 {
-                                	perror("Error"); // 
+                                    perror("myshell: Error");  
                                 }              
-                                                   
-                         	}
-
+                                                 
+                            }
+                            
                             cmdExec++;
                         }
 
