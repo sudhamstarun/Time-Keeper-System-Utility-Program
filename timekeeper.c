@@ -5,7 +5,6 @@ Student Number: 3035253876
 Development Platform: MACOSX 10.14 with gcc compiler and Sublime Text(tested under Ubuntu 18.04 
 Remarks:
 */
-
 #include <errno.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -19,8 +18,7 @@ Remarks:
 int parentProcessPID = 0;   
 int childProcessPID = 0;
 int timeStatisticsTrigger = 1;      
-int cont = 1;
-int pipeCounter = 0;        
+int cont = 1;       
 int firstProcess = 0;   
 int maintainPipes = 0;
 
@@ -178,161 +176,170 @@ void dotimeStatisticsTrigger(int processID)
 
 void execution(int argc, char *argv[])
 {
-  signal(SIGINT, SIG_IGN);
-  //struct timespec start, stop;
-  //double accumTime;
-  int pfd1[2];
-  int pfd2[2];
 
-  int * commands = (int *) malloc(sizeof(int) * argc);
-  int * pidCounter = (pid_t *) malloc(sizeof(pid_t) * argc);
-  int pipeCounter = 1;
-  int currentPIDValue;
-  int k = 0;
+	/* ------------ Declaring variables for statisics ------------ */
+	signal(SIGINT, SIG_IGN);
 
-  for (int i = 1; i < argc; i++)
+	/* ------------ End of Variables for statistics------------ */
+
+	/* ------------ Declaring variables for execution and piping ------------ */
+
+	int * mainInputCommands = (int *) malloc (sizeof(int) * argc);
+	int counterOfPipe = 1;
+	int pfd1[2];
+	int pfd2[2];
+	int currentRunningPID = 0;
+	pid_t childPIDs[argc];
+	pid_t pid;
+	int counterOfArg = 0;
+	int CurrentStatusOfPID;
+	int randomIntegerOne = 0;
+
+	/* ------------ End of Declaring Variables for execution and piping------------ */
+
+	/* ------------ Execution and Piping Starts Here------------ */
+
+	for(int randomIntegerTwo = 1; randomIntegerTwo < argc; randomIntegerTwo++)
+	{
+		if(strcmp(argv[randomIntegerTwo],"!") == 0)
+		{
+			mainInputCommands[randomIntegerOne] = randomIntegerTwo - counterOfPipe;
+			randomIntegerOne = randomIntegerOne + 1;
+			counterOfPipe = randomIntegerTwo + 1;
+		}
+	}
+
+	mainInputCommands[randomIntegerOne] = argc - counterOfPipe;
+	randomIntegerOne= randomIntegerOne + 1;
+
+	/* ------------Different Cases for Piping Start Here----------- */
+
+	if(randomIntegerOne == 2)
+	{
+		pipe(pfd1);
+	}
+
+	else if(randomIntegerOne > 2)
+	{
+		pipe(pfd1);
+		pipe(pfd2);
+	}
+
+	counterOfPipe = 1;
+
+	for(int randomIntegerTwo = 0; randomIntegerTwo < randomIntegerOne; randomIntegerTwo++)
+	{
+		pid = fork();
+
+		if(pid < 0)
+		{
+			printf("ERROR: Forking Failed\n");
+		}
+
+		else if (pid == 0)
+		{
+			childPIDs[randomIntegerTwo] = pid;
+			signal(SIGINT, sigIntHandler);
+			printf("Process with id: %d created for the command: %s\n", (int) getpid(), argv[counterOfPipe]);
+			break;
+		}
+	
+
+		counterOfPipe += mainInputCommands[randomIntegerTwo] + 1;
+		currentRunningPID++;
+		sleep(1);
+	}
+
+if(pid > 1)
+{
+	if(randomIntegerOne == 2)
+	{
+		close(pfd1[0]);   // closing both ends of the pipe opened earlier
+		close(pfd1[1]);
+	}
+
+	if(randomIntegerOne > 2)
+	{
+		close(pfd1[0]);
+		close(pfd1[1]);
+		close(pfd2[0]);
+		close(pfd2[1]);
+	}
+
+	counterOfPipe = 1;
+
+
+	for(int randomIntegerTwo = 0; randomIntegerTwo < randomIntegerOne; randomIntegerTwo)
+	{
+		pid_t child_pid = waitpid(-1, &CurrentStatusOfPID, 0);
+	
+
+		if(WEXITSTATUS(CurrentStatusOfPID) == -1)
+		{
+			printf("Error executing the command\n");
+		}
+
+		else
+		{
+
+			//dotimeStatisticsTrigger(child_pid);
+			
+		}
+
+		counterOfPipe = counterOfPipe + mainInputCommands[randomIntegerTwo] + 1;
+		sleep(1);
+	}
+}
+
+sleep(1);
+
+if (pid==0)
   {
-    if(strcmp(argv[i],"!")==0)
+    char ** argumentVector = (char **) malloc(sizeof(char*) * mainInputCommands[currentRunningPID]);
+
+    for (int randomIntegerTwo = counterOfPipe; randomIntegerTwo < counterOfPipe + mainInputCommands[currentRunningPID]; randomIntegerTwo++)
     {
-      commands[k] = i - pipeCounter;
-      k++;
-      pipeCounter = i+1;
-    }
-  }
-
-  commands[k] = argc - pipeCounter;
-  k++;
-
-  if (k == 2)
-  {
-    pipe(pfd1);
-  }
-  else if (k > 2)
-  {
-    pipe(pfd1);
-    pipe(pfd2);
-  }
-
-  pipeCounter = 1;
-  pid_t pid;
-  int current = 0;
-
-  for (int i = 0; i < k; i++)
-  {
-    pid = fork();
-    pidCounter[i] = (int) pid;
-
-    if (pid < 0)
-    {
-      // Error
-    }
-    else if (pid==0)
-    {
-      signal(SIGINT, sigIntHandler);
-
-      //clock_gettime(CLOCK_REALTIME, &start);
-      printf("Process with id: %d created for the command: %s\n", (int) getpid(), argv[pipeCounter]);
-
-      break;
+      argumentVector[counterOfArg] = (char *) malloc(sizeof(char) * strlen(argv[randomIntegerTwo]));
+      strcpy(argumentVector[counterOfArg], argv[randomIntegerTwo]);
+      counterOfArg++;
     }
 
-    pipeCounter += commands[i] + 1;
-    current++;
-    sleep(1);
-  }
-
-  
-
-  if (pid > 1)
-  {
-    if (k == 2)
+    if (randomIntegerOne == 1)
     {
-      close(pfd1[0]);
-      close(pfd1[1]);
-    }
-    if (k > 2)
-    {
-      close(pfd1[0]);
-      close(pfd1[1]);
-      close(pfd2[0]);
-      close(pfd2[1]);
-    }
-    pipeCounter = 1;
-    for (int i = 0; i < k; i++)
-    {
-      int status;
-      pid_t child_pid = waitpid(-1, &status, 0);
-      
-      
-      if (WEXITSTATUS(status) == -1)
-      {
-        printf("timekeeper experienced an error in starting the command: %s", argv[pipeCounter]);
-      }
-      
-      else
-      {
-      
-        dotimeStatisticsTrigger(child_pid);
-      }
-      pipeCounter += commands[i] + 1;
 
-      sleep(1);
-    }
-  }
-
-  sleep(2);
-
-  if (pid==0)
-  {
-    char ** args = (char **) malloc(sizeof(char*) * commands[current]);
-
-    /*
-    ls -l ! cat a.out ! wc
-
-    args[] = {ls, -l}
-    */
-
-    int argCounter = 0;
-
-    for (int j = pipeCounter; j < pipeCounter + commands[current]; j++)
-    {
-      args[argCounter] = (char *) malloc(sizeof(char) * strlen(argv[j]));
-      strcpy(args[argCounter], argv[j]);
-      argCounter++;
-    }
-
-    if (k == 1)
-    {
-      if (execvp(args[0],args) == -1)
+      if (execvp(argumentVector[0],argumentVector) == -1)
       {
         printf("execvp: No such file or directory\n");
         exit(-1);
       }
     }
-    if (k == 2)
+
+    if (randomIntegerOne == 2)
     {
-      if (current == 0)
+
+      if (currentRunningPID == 0)
       {
         close(pfd1[0]);
         dup2(pfd1[1], STDOUT_FILENO);
         close(pfd1[1]);
       }
-      else if (current == 1)
+
+      else if (currentRunningPID == 1)
       {
         close(pfd1[1]);
         dup2(pfd1[0], STDIN_FILENO);
         close(pfd1[0]);
       }
 
-      if (execvp(args[0],args) == -1)
+      if (execvp(argumentVector[0],argumentVector) == -1)
       {
         printf("execvp: No such file or directory\n");
         exit(-1);
       }
     }
-    if (k > 2)
+    if (randomIntegerOne > 2)
     {
-      if (current == 0)
+      if (currentRunningPID == 0)
       {
         close(pfd2[0]);
         close(pfd2[1]);
@@ -340,7 +347,8 @@ void execution(int argc, char *argv[])
         dup2(pfd1[1], STDOUT_FILENO);
         close(pfd1[1]);
       }
-      else if (current == k - 1)
+
+      else if (currentRunningPID == randomIntegerOne - 1)
       {
         close(pfd1[0]);
         close(pfd1[1]);
@@ -348,6 +356,7 @@ void execution(int argc, char *argv[])
         dup2(pfd2[0], STDIN_FILENO);
         close(pfd2[0]);
       }
+
       else
       {
         close(pfd1[1]);
@@ -358,19 +367,15 @@ void execution(int argc, char *argv[])
         close(pfd2[1]);
       }
 
-      if (execvp(args[0],args) == -1)
+      if (execvp(argumentVector[0],argumentVector) == -1)
       {
         printf("execvp: No such file or directory\n");
         exit(-1);
       }
     }
     exit(0);
-	}
+   }
 }
-
-
-
-
 
 void SIGKILLHandler(int signum)
 {
