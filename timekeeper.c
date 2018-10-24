@@ -3,7 +3,7 @@ FileName: main.c
 Student Name: Tarun Sudhams
 Student Number: 3035253876
 Development Platform: MACOSX 10.14 with gcc compiler and Sublime Text(tested under Ubuntu 18.04) 
-Compilation: gcc timekeeper.c -o timekeeper
+Compilation: gcc timekeeper_3035253876.c -o timekeeper
 Remarks:
 */
 #include <errno.h>
@@ -26,15 +26,16 @@ int pipeCounter = 0;
 int maintainPipes = 0;
 int n = 0;
 
-
+// Basic Signal handling function to catch signals
 void signalhandler(int signum)
 {
 	printf("Signal %d is caught for %d times\n", signum, ++n);
 }
 
-// 
+//Harcoding the signals listing in order to prompt when required 
 char *signame[]={"INVALID", "SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGTRAP", "SIGABRT", "SIGBUS", "SIGFPE", "SIGKILL", "SIGUSR1", "SIGSEGV", "SIGUSR2", "SIGPIPE", "SIGALRM", "SIGTERM", "SIGSTKFLT", "SIGCHLD", "SIGCONT", "SIGSTOP", "SIGTSTP", "SIGTTIN", "SIGTTOU", "SIGURG", "SIGXCPU", "SIGXFSZ", "SIGVTALRM", "SIGPROF", "SIGWINCH", "SIGPOLL", "SIGPWR", "SIGSYS", NULL};
 
+//Basic function for signal handling
 static void handleyoursignal(void)
 {
 	struct sigaction satmp;
@@ -44,6 +45,7 @@ static void handleyoursignal(void)
 	sigaction(SIGINT, &satmp, NULL);
 }
 
+//Function to trigger time statistics and context switching
 void dotimeStatisticsTrigger(int processID)
 {
     char inputStringOne[50];
@@ -190,6 +192,9 @@ void execution(int argc, char *argv[])
 
 	counterOfPipe = 1;
 	pid_t childPIDs[randomIntegerOne];
+    
+    /* ------------Process Creation Happens Here------------ */
+    
 	for(int randomIntegerTwo = 0; randomIntegerTwo < randomIntegerOne; randomIntegerTwo++)
 	{
 		handleyoursignal();
@@ -217,7 +222,7 @@ if(pid > 1)
 {
 	if(randomIntegerOne == 2)
 	{
-		close(pfd1[0]);   // closing both ends of the pipe opened earlier
+		close(pfd1[0]);    // closing both ends of the pipe opened earlier
 		close(pfd1[1]);
 	}
 
@@ -234,6 +239,7 @@ if(pid > 1)
 
 	for(int randomIntegerTwo = 0; randomIntegerTwo < randomIntegerOne; randomIntegerTwo++)
 	{
+        /* ------------Handling the process output based on the interruption or termination of the process------------ */
 
 		siginfo_t infop;
 		infop.si_pid = -1;
@@ -251,6 +257,7 @@ if(pid > 1)
 		else if(WIFSIGNALED(infop.si_status))
 		{
 			// adapted from https://stackoverflow.com/questions/16509614/signal-number-to-name
+            
 			printf("The command \"%s\" interrupted by signal number = %d (%s)\n", argv[counterOfPipe], WTERMSIG(infop.si_status), signame[WTERMSIG(infop.si_status)]);
 			dotimeStatisticsTrigger(childPIDs[randomIntegerTwo]);
 		}
@@ -284,7 +291,7 @@ if (pid==0)
 		
 	    if (execvp(argumentVector[0],argumentVector) == -1)
 	    {
-	        printf("execvp: No such file or directory\n");
+	        printf("execvp: No such file or directory\n"); 
 	        exit(-1);
 	    }
 	     
