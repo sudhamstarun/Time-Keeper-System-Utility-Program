@@ -2,7 +2,8 @@
 FileName: main.c
 Student Name: Tarun Sudhams
 Student Number: 3035253876
-Development Platform: MACOSX 10.14 with gcc compiler and Sublime Text(tested under Ubuntu 18.04 
+Development Platform: MACOSX 10.14 with gcc compiler and Sublime Text(tested under Ubuntu 18.04) 
+Compilation: gcc timekeeper.c -o timekeeper
 Remarks:
 */
 #include <errno.h>
@@ -13,23 +14,36 @@ Remarks:
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <ctype.h>
 
 
 int parentProcessPID = 0;   
 int childProcessPID = 0;
 int timeStatisticsTrigger = 1;      
 int cont = 1;       
-int firstProcess = 0;   
+int firstProcess = 0;
+int pipeCounter = 0;   
 int maintainPipes = 0;
+int n = 0;
 
-void sigIntHandler(int signum, siginfo_t *signal, void *v)
- {
-    if(parentProcessPID == 0)
-    {
-        printf("I have received SIGINT. But I am not going to terminate. :)\n");
-    }       
-        
+
+void signalhandler(int signum)
+{
+	printf("Signal %d is caught for %d times\n", signum, ++n);
 }
+
+// 
+char *signame[]={"INVALID", "SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGTRAP", "SIGABRT", "SIGBUS", "SIGFPE", "SIGKILL", "SIGUSR1", "SIGSEGV", "SIGUSR2", "SIGPIPE", "SIGALRM", "SIGTERM", "SIGSTKFLT", "SIGCHLD", "SIGCONT", "SIGSTOP", "SIGTSTP", "SIGTTIN", "SIGTTOU", "SIGURG", "SIGXCPU", "SIGXFSZ", "SIGVTALRM", "SIGPROF", "SIGWINCH", "SIGPOLL", "SIGPWR", "SIGSYS", NULL};
+
+static void handleyoursignal(void)
+{
+	struct sigaction satmp;
+	sigemptyset(&satmp.sa_mask);
+	satmp.sa_flags = 0;
+	satmp.sa_handler = signalhandler;
+	sigaction(SIGINT, &satmp, NULL);
+}
+
 void dotimeStatisticsTrigger(int processID)
 {
     char inputStringOne[50];
@@ -120,65 +134,15 @@ void dotimeStatisticsTrigger(int processID)
     fscanf(file, "%d %s %c %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld %ld %ld %ld %ld %llu", &z, inputStringOne, &state, &z, &z, &z, &z, &z, (unsigned *)&z, &h, &h, &h, &h, &ut, &st, &h, &h, &h, &h, &h, &h, &starttime); //read all params and save the ones needed
     fclose(file);
 
-    
-    printf("\nThe Command '%s' termintaed  with return status code: %d\n", inputStringOne, 0);
     printf("real: %0.2fs, user:%0.2fs, system: %0.2fs, context_switch: %d\n",uptime - (starttime)/sysconf(_SC_CLK_TCK), ut*1.0f/sysconf(_SC_CLK_TCK), st*1.0f/sysconf(_SC_CLK_TCK), final_value);
 }
 
-/*void sigChildHandler(int signum, siginfo_t *signal, void *v)
- {
-    int randomIntegerOne;
-
-    if(parentProcessPID == signal->si_pid )
-    {                           
-        cont = 1;                               
-        parentProcessPID = 0;
-
-        if(timeStatisticsTrigger == 1)
-        {                               
-            dotimeStatisticsTrigger(signal->si_pid);
-            exit(0);                                                     
-        }
-    }
-
-    else if(signal->si_pid != parentProcessPID && pipeCounter == 0)
-    {                                                                                               
-        printf("[%d] 1Process Terminated!\n", signal->si_pid);      
-        childProcessPID = 0;
-    }
-    
-    if(signal->si_pid == maintainPipes)
-    {                                                                           
-        cont = 1;
-        maintainPipes = 0;
-    }
-    
-    if(getpgid(signal->si_pid) == firstProcess)
-    {                                                                                                                   
-        siginfo_t processInfo;
-
-        while(waitid(P_PGID, firstProcess, &processInfo, WEXITED|WNOWAIT)==0)
-        {                                                                                           
-            if(waitpid(processInfo.si_pid, NULL, 0) == processInfo.si_pid)
-            {                                                                                                           
-                printf("[%d] 2Process Terminated!\n", processInfo.si_pid);  
-            }
-        }
-
-        if(waitid(P_PGID, firstProcess, &processInfo, WEXITED|WNOWAIT) == -1)
-        {                                                                                   
-            exit(0);
-        }
-    }
-
-    id_t child_pid = waitpid(signal->si_pid, NULL, 0);                  
-}*/
 
 void execution(int argc, char *argv[])
 {
 
 	/* ------------ Declaring variables for statisics ------------ */
-	signal(SIGINT, SIG_IGN);
+	handleyoursignal();
 
 	/* ------------ End of Variables for statistics------------ */
 
@@ -189,7 +153,6 @@ void execution(int argc, char *argv[])
 	int pfd1[2];
 	int pfd2[2];
 	int currentRunningPID = 0;
-	pid_t childPIDs[argc];
 	pid_t pid;
 	int counterOfArg = 0;
 	int CurrentStatusOfPID;
@@ -213,7 +176,7 @@ void execution(int argc, char *argv[])
 	randomIntegerOne= randomIntegerOne + 1;
 
 	/* ------------Different Cases for Piping Start Here----------- */
-
+// Adapted from the Lab 3  Piping and made
 	if(randomIntegerOne == 2)
 	{
 		pipe(pfd1);
@@ -226,10 +189,12 @@ void execution(int argc, char *argv[])
 	}
 
 	counterOfPipe = 1;
-
+	pid_t childPIDs[randomIntegerOne];
 	for(int randomIntegerTwo = 0; randomIntegerTwo < randomIntegerOne; randomIntegerTwo++)
 	{
+		handleyoursignal();
 		pid = fork();
+		childPIDs[randomIntegerTwo] = pid;
 
 		if(pid < 0)
 		{
@@ -238,8 +203,6 @@ void execution(int argc, char *argv[])
 
 		else if (pid == 0)
 		{
-			childPIDs[randomIntegerTwo] = pid;
-			signal(SIGINT, sigIntHandler);
 			printf("Process with id: %d created for the command: %s\n", (int) getpid(), argv[counterOfPipe]);
 			break;
 		}
@@ -269,21 +232,33 @@ if(pid > 1)
 	counterOfPipe = 1;
 
 
-	for(int randomIntegerTwo = 0; randomIntegerTwo < randomIntegerOne; randomIntegerTwo)
+	for(int randomIntegerTwo = 0; randomIntegerTwo < randomIntegerOne; randomIntegerTwo++)
 	{
-		pid_t child_pid = waitpid(-1, &CurrentStatusOfPID, 0);
-	
 
-		if(WEXITSTATUS(CurrentStatusOfPID) == -1)
+		siginfo_t infop;
+		infop.si_pid = -1;
+		waitid(P_PID,(int) childPIDs[randomIntegerTwo], &infop, WEXITED | WNOWAIT | WSTOPPED);
+	
+		waitid(P_PID,(int) childPIDs[randomIntegerTwo], &infop, WEXITED | WNOWAIT | WSTOPPED);
+		
+		if(WEXITSTATUS(infop.si_status) == -1)
 		{
+
 			printf("Error executing the command\n");
+		}
+
+
+		else if(WIFSIGNALED(infop.si_status))
+		{
+			// adapted from https://stackoverflow.com/questions/16509614/signal-number-to-name
+			printf("The command \"%s\" interrupted by signal number = %d (%s)\n", argv[counterOfPipe], WTERMSIG(infop.si_status), signame[WTERMSIG(infop.si_status)]);
+			dotimeStatisticsTrigger(childPIDs[randomIntegerTwo]);
 		}
 
 		else
 		{
-
-			//dotimeStatisticsTrigger(child_pid);
-			
+			printf("The command \"%s\" terminated with returned status code = %d\n", argv[counterOfPipe] ,WEXITSTATUS(infop.si_status));
+			dotimeStatisticsTrigger(childPIDs[randomIntegerTwo]);
 		}
 
 		counterOfPipe = counterOfPipe + mainInputCommands[randomIntegerTwo] + 1;
@@ -306,12 +281,13 @@ if (pid==0)
 
     if (randomIntegerOne == 1)
     {
-
-      if (execvp(argumentVector[0],argumentVector) == -1)
-      {
-        printf("execvp: No such file or directory\n");
-        exit(-1);
-      }
+		
+	    if (execvp(argumentVector[0],argumentVector) == -1)
+	    {
+	        printf("execvp: No such file or directory\n");
+	        exit(-1);
+	    }
+	     
     }
 
     if (randomIntegerOne == 2)
@@ -337,6 +313,7 @@ if (pid==0)
         exit(-1);
       }
     }
+
     if (randomIntegerOne > 2)
     {
       if (currentRunningPID == 0)
@@ -377,15 +354,9 @@ if (pid==0)
    }
 }
 
-void SIGKILLHandler(int signum)
-{
-    printf("Killed\n");
-}
-
 int main(int argc, char* argv[])
 {
    execution(argc, argv);
 
    return 0;
-
 }
